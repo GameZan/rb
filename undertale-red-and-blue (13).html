@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Undertale Red and Blue</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000; color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden; user-select: none;
+    }
+    #game-container {
+      position: relative;
+      width: min(800px, 96vw);
+      height: min(600px, 92vh);
+      border: 3px solid #444; background: #000; overflow: hidden;
+    }
+    .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* Title */
+    #title-screen { align-items: center; justify-content: center; text-align: center; padding: 16px; }
+    #title-screen h1 {
+      font-size: 20px; margin-bottom: 6px;
+      background: linear-gradient(90deg, #4af, #f44);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: none; filter: drop-shadow(0 0 8px #88f);
+    }
+    #title-screen .subtitle { font-size: 10px; color: #888; margin-bottom: 14px; }
+    .soul-preview {
+      display: flex; gap: 24px; justify-content: center; margin: 12px 0 18px;
+    }
+    .soul-preview .half {
+      width: 28px; height: 28px;
+      clip-path: path('M14 26 C14 26 1 17 1 10 C1 5 5 2 9 2 C12 2 14 5 14 8 C14 5 16 2 19 2 C23 2 27 5 27 10 C27 17 14 26 14 26 Z');
+    }
+    .soul-preview .blue { background: #4af; filter: drop-shadow(0 0 6px #4af); }
+    .soul-preview .red { background: #f44; filter: drop-shadow(0 0 6px #f44); }
+    #title-screen p { font-size: 8px; line-height: 1.7; color: #aaa; max-width: 460px; margin: 0 auto 18px; }
+    .btn {
+      background: #000; border: 3px solid #fff; color: #fff;
+      font-family: 'Press Start 2P', monospace; font-size: 11px;
+      padding: 9px 20px; cursor: pointer; margin: 5px;
+    }
+    .btn:hover { background: #fff; color: #000; }
+    .btn.rb { border-image: linear-gradient(90deg, #4af, #f44) 1; color: #cff; }
+    .btn.rb:hover { background: linear-gradient(90deg, #4af, #f44); color: #000; }
+    .btn.blue { border-color: #4af; color: #4af; }
+    .btn.blue:hover { background: #4af; color: #000; }
+    .btn.red { border-color: #f44; color: #f44; }
+    .btn.red:hover { background: #f44; color: #000; }
+
+    /* Select screen */
+    #select-screen { align-items: center; justify-content: center; text-align: center; padding: 12px; overflow-y: auto; }
+    #select-screen h2 { font-size: 14px; margin-bottom: 6px; color: #fff; }
+    #select-screen .hint { font-size: 8px; color: #666; margin-bottom: 12px; line-height: 1.6; }
+    .select-options { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    .select-card {
+      border: 3px solid #444; padding: 12px 18px; width: min(340px, 90%); cursor: pointer;
+      transition: border-color 0.1s, background 0.1s;
+    }
+    .select-card:hover, .select-card.selected { border-color: #fff; background: #111; }
+    .select-card.multi:hover, .select-card.multi.selected { border-color: #8af; }
+    .select-card.blue-only:hover, .select-card.blue-only.selected { border-color: #4af; }
+    .select-card.red-only:hover, .select-card.red-only.selected { border-color: #f44; }
+    .select-card .card-title { font-size: 11px; margin-bottom: 6px; }
+    .select-card .card-desc { font-size: 7px; color: #888; line-height: 1.5; }
+    .select-card .mini-souls { display: flex; gap: 10px; justify-content: center; margin: 8px 0; }
+    .select-card .mini-souls .half { width: 18px; height: 18px; clip-path: path('M9 17 C9 17 1 11 1 6.5 C1 3.5 3.5 1.5 6 1.5 C7.5 1.5 9 3 9 5 C9 3 10.5 1.5 12 1.5 C14.5 1.5 17 3.5 17 6.5 C17 11 9 17 9 17 Z'); }
+    .select-card .mini-souls .blue { background: #4af; filter: drop-shadow(0 0 4px #4af); }
+    .select-card .mini-souls .red { background: #f44; filter: drop-shadow(0 0 4px #f44); }
+
+    /* Name screen */
+    #name-screen { align-items: center; justify-content: center; text-align: center; padding: 16px; }
+    #name-screen h2 { font-size: 14px; margin-bottom: 10px; }
+    #name-screen .hint { font-size: 8px; color: #666; margin-bottom: 14px; line-height: 1.5; }
+    #name-input {
+      background: #000; border: 3px solid #fff; color: #fff;
+      font-family: 'Press Start 2P', monospace; font-size: 12px;
+      padding: 10px 14px; text-align: center; width: min(280px, 80%);
+      outline: none;
+    }
+    #name-input:focus { border-color: #8af; }
+    #name-msg { font-size: 8px; color: #f88; margin: 12px auto 8px; min-height: 28px; max-width: 360px; line-height: 1.5; }
+    #name-msg.warn { color: #ff0; }
+    #name-msg.ok { color: #0f0; }
+    .name-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+
+    /* Save slots */
+    #slots-screen { align-items: center; justify-content: center; text-align: center; padding: 16px; overflow-y: auto; }
+    #slots-screen h2 { font-size: 14px; margin-bottom: 8px; }
+    #slots-screen .hint { font-size: 8px; color: #666; margin-bottom: 12px; }
+    .slot-card {
+      border: 3px solid #444; padding: 12px 16px; width: min(360px, 90%); margin: 0 auto 10px;
+      cursor: pointer; text-align: left; transition: border-color 0.1s, background 0.1s;
+    }
+    .slot-card:hover, .slot-card.selected { border-color: #fff; background: #111; }
+    .slot-card.empty { opacity: 0.7; }
+    .slot-card .slot-title { font-size: 11px; margin-bottom: 6px; color: #8af; }
+    .slot-card .slot-info { font-size: 7px; color: #aaa; line-height: 1.6; }
+    .slot-card .slot-empty-label { font-size: 9px; color: #666; }
+
+    /* Story */
+    #story-screen { justify-content: flex-end; background: #000; }
+    #story-bg {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 56px; position: relative;
+    }
+    #story-bg .scene-text {
+      position: absolute; bottom: 14px; font-size: 9px; color: #555; text-align: center; width: 100%;
+    }
+    #story-dialogue {
+      border-top: 3px solid #fff; background: #000; padding: 14px 18px;
+      min-height: 100px; font-size: 11px; line-height: 1.55; cursor: pointer; position: relative;
+    }
+    #story-dialogue .speaker { color: #8cf; margin-bottom: 5px; font-size: 10px; }
+    #story-dialogue .prompt {
+      position: absolute; right: 14px; bottom: 10px; font-size: 9px; color: #555;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink { 50% { opacity: 0.25; } }
+
+    /* Overworld */
+    #overworld-screen { background: #111; }
+    #map { flex: 1; position: relative; overflow: hidden; }
+    #player {
+      position: absolute; width: 22px; height: 16px; z-index: 10;
+      display: flex; gap: 2px; align-items: center; justify-content: center;
+    }
+    #player.single { width: 16px; height: 16px; }
+    #player .b, #player .r {
+      width: 10px; height: 16px;
+      clip-path: path('M5 14.5 C5 14.5 0.5 9.5 0.5 5.5 C0.5 2.8 2.5 1.2 4.5 1.2 C5.5 1.2 6.2 2.2 6.5 3.5 C6.8 2.2 7.5 1.2 8.5 1.2 C10.5 1.2 12.5 2.8 12.5 5.5 C12.5 9.5 8 14.5 5 14.5 Z');
+    }
+    #player.single .b, #player.single .r {
+      width: 16px; height: 16px;
+      clip-path: path('M8 15 C8 15 1 10 1 5.5 C1 2.8 3 1 5.2 1 C6.6 1 8 2.5 8 4.2 C8 2.5 9.4 1 10.8 1 C13 1 15 2.8 15 5.5 C15 10 8 15 8 15 Z');
+    }
+    #player .b { background: #4af; filter: drop-shadow(0 0 3px #4af); }
+    #player .r { background: #f44; filter: drop-shadow(0 0 3px #f44); }
+    .npc, .exit { position: absolute; display: flex; align-items: center; justify-content: center; font-size: 20px; z-index: 5; }
+    .obstacle { position: absolute; background: #2a2a3a; border: 1px solid #444; font-size: 0; }
+    .crowd-person {
+      position: absolute; font-size: 22px; z-index: 8;
+      transition: left 0.8s ease, top 0.8s ease, opacity 0.6s ease;
+      filter: drop-shadow(0 0 2px #000);
+    }
+    .crowd-person.leaving { opacity: 0; }
+    #ow-ui {
+      height: 34px; border-top: 2px solid #333;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 10px; font-size: 9px; background: #0a0a12;
+    }
+    #ow-ui .kills { color: #f88; }
+    #ow-ui .route { color: #8af; }
+
+    /* Battle */
+    #battle-screen { background: #000; }
+    #ui-top {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 6px 10px; font-size: 9px; height: 32px;
+    }
+    .name-hp { display: flex; align-items: center; gap: 6px; }
+    .hp-bar-container {
+      width: 70px; height: 12px; background: #400; border: 2px solid #fff; position: relative;
+    }
+    .hp-bar { height: 100%; background: linear-gradient(90deg, #4af, #f44); width: 100%; transition: width 0.15s; }
+    .hp-text { font-size: 8px; min-width: 50px; }
+    #enemy-area {
+      height: 72px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #enemy-sprite { font-size: 42px; line-height: 1; transition: transform 0.1s; }
+    #enemy-name { font-size: 10px; margin-top: 3px; color: #f88; }
+    #dialogue-box {
+      border: 3px solid #fff; background: #000; padding: 10px 14px;
+      min-height: 56px; font-size: 10px; line-height: 1.45; margin: 0 10px 6px; position: relative;
+    }
+    #dialogue-box .speaker { color: #8cf; margin-bottom: 3px; font-size: 9px; }
+    #battle-box {
+      width: 280px; height: 180px; border: 4px solid #fff;
+      margin: 0 auto 6px; position: relative; background: #000; overflow: hidden;
+    }
+    /* Dual souls */
+    .soul {
+      position: absolute; width: 16px; height: 16px; z-index: 10;
+      left: 0; top: 0;
+    }
+    .soul .heart {
+      width: 100%; height: 100%;
+      clip-path: path('M8 15 C8 15 1 10 1 5.5 C1 2.8 3 1 5.2 1 C6.6 1 8 2.5 8 4.2 C8 2.5 9.4 1 10.8 1 C13 1 15 2.8 15 5.5 C15 10 8 15 8 15 Z');
+    }
+    #soul-blue .heart { background: #4af; filter: drop-shadow(0 0 4px #4af); }
+    #soul-red .heart { background: #f44; filter: drop-shadow(0 0 4px #f44); }
+    .projectile {
+      position: absolute; width: 8px; height: 8px; background: #f44;
+      border-radius: 2px; z-index: 5; box-shadow: 0 0 4px #f00;
+    }
+    .projectile.spear {
+      width: 5px; height: 16px;
+      background: linear-gradient(to bottom, #fff 0%, #f44 40%, #a00 100%);
+      border-radius: 1px;
+    }
+    .projectile.pellet { width: 7px; height: 7px; border-radius: 50%; background: #fff; box-shadow: 0 0 5px #fff; }
+    .projectile.bone {
+      width: 18px; height: 5px; background: #eee; border-radius: 2px; box-shadow: 0 0 4px #aaa;
+    }
+    .projectile.blue-atk { background: #4af; box-shadow: 0 0 5px #4af; }
+    #menu {
+      display: flex; justify-content: center; gap: 14px; font-size: 10px; padding: 4px 0;
+    }
+    .menu-item {
+      cursor: pointer; padding: 4px 10px; border: 2px solid transparent;
+    }
+    .menu-item.selected { border-color: #fff; color: #ff0; }
+    .menu-item:hover { color: #ff0; }
+    #instructions {
+      text-align: center; font-size: 7px; color: #555; padding-bottom: 3px;
+    }
+    #mode-indicator {
+      position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+      font-size: 8px; color: #8cf; z-index: 20; display: none;
+    }
+
+    /* Result */
+    #result-screen { align-items: center; justify-content: center; text-align: center; padding: 24px; }
+    #result-screen h2 { font-size: 18px; margin-bottom: 12px; }
+    #result-screen.win h2 { color: #4af; }
+    #result-screen.lose h2 { color: #f44; }
+    #result-screen.true h2 { color: #f0f; }
+    #result-screen p { font-size: 10px; line-height: 1.65; margin-bottom: 18px; color: #ccc; max-width: 460px; }
+
+    .flash { animation: flashHit 0.25s; }
+    @keyframes flashHit {
+      0%, 100% { filter: none; }
+      50% { filter: brightness(2.2) sepia(1) hue-rotate(-40deg); }
+    }
+    .shake { animation: shake 0.22s; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- TITLE -->
+    <div id="title-screen" class="screen active">
+      <h1>UNDERTALE RED AND BLUE</h1>
+      <div class="subtitle">A Fan Game — Dual SOUL</div>
+      <div class="soul-preview">
+        <div class="half blue"></div>
+        <div class="half red"></div>
+      </div>
+      <p>
+        Your SOUL was split in two.<br>
+        <span style="color:#4af">BLUE</span> — Integrity &nbsp;|&nbsp; <span style="color:#f44">RED</span> — Determination<br><br>
+        Control both halves. Survive the Underground.<br>
+        The path is longer. Your choices still matter.
+      </p>
+      <button class="btn rb" id="start-btn">START</button>
+      <button class="btn blue" id="continue-btn" style="display:none;">CONTINUE</button>
+      <div style="margin-top:12px;font-size:7px;color:#444;">
+        Overworld: Arrow keys / WASD &nbsp;|&nbsp; Z / Enter = Confirm
+      </div>
+    </div>
+
+    <!-- NAME ENTRY -->
+    <div id="name-screen" class="screen">
+      <h2>Name the fallen human.</h2>
+      <div class="hint">This is what everyone will call you.</div>
+      <input type="text" id="name-input" maxlength="12" autocomplete="off" spellcheck="false" placeholder="..." />
+      <div id="name-msg"></div>
+      <div class="name-btns">
+        <button class="btn" id="name-back-btn">BACK</button>
+        <button class="btn rb" id="name-confirm-btn">CONFIRM</button>
+        <button class="btn red" id="name-yes-btn" style="display:none;">YES</button>
+        <button class="btn" id="name-no-btn" style="display:none;">NO</button>
+      </div>
+    </div>
+
+    <!-- SAVE SLOTS -->
+    <div id="slots-screen" class="screen">
+      <h2 id="slots-title">SAVE SLOTS</h2>
+      <div class="hint" id="slots-hint">Select a slot.</div>
+      <div id="slots-list"></div>
+      <div class="name-btns" style="margin-top:12px;">
+        <button class="btn" id="slots-back-btn">BACK</button>
+        <button class="btn rb" id="slots-confirm-btn">CONFIRM</button>
+        <button class="btn red" id="slots-delete-btn" style="display:none;">DELETE</button>
+      </div>
+    </div>
+
+    <!-- PLAYER SELECT -->
+    <div id="select-screen" class="screen">
+      <h2>CHOOSE YOUR MODE</h2>
+      <div class="hint">Multiplayer uses both souls at once.<br>Single-player uses one soul (easier to control).</div>
+      <div class="select-options">
+        <div class="select-card multi" data-mode="multi" id="opt-multi">
+          <div class="card-title" style="color:#8af">MULTIPLAYER</div>
+          <div class="mini-souls"><div class="half blue"></div><div class="half red"></div></div>
+          <div class="card-desc">Control both souls.<br>WASD = Blue &nbsp;|&nbsp; Arrows = Red</div>
+        </div>
+        <div class="select-card blue-only" data-mode="blue" id="opt-blue">
+          <div class="card-title" style="color:#4af">SINGLE — BLUE</div>
+          <div class="mini-souls"><div class="half blue"></div></div>
+          <div class="card-desc">Integrity only. Move with WASD or Arrows.</div>
+        </div>
+        <div class="select-card red-only" data-mode="red" id="opt-red">
+          <div class="card-title" style="color:#f44">SINGLE — RED</div>
+          <div class="mini-souls"><div class="half red"></div></div>
+          <div class="card-desc">Determination only. Move with WASD or Arrows.</div>
+        </div>
+      </div>
+      <div id="hard-mode-row" style="display:none;margin-top:14px;">
+        <button class="btn red" id="hard-toggle-btn">HARD MODE: OFF</button>
+        <div style="font-size:7px;color:#f88;margin-top:8px;line-height:1.5;">Stronger foes. Faster attacks. Less mercy from the Underground.</div>
+      </div>
+      <button class="btn rb" id="confirm-mode-btn" style="margin-top:16px;">CONFIRM</button>
+    </div>
+
+    <!-- STORY -->
+    <div id="story-screen" class="screen">
+      <div id="story-bg">
+        <span id="story-emoji">🏔️</span>
+        <div class="scene-text" id="scene-label"></div>
+      </div>
+      <div id="story-dialogue">
+        <div class="speaker" id="story-speaker">*</div>
+        <div id="story-text"></div>
+        <div class="prompt">▼</div>
+      </div>
+    </div>
+
+    <!-- OVERWORLD -->
+    <div id="overworld-screen" class="screen">
+      <div id="map"></div>
+      <div id="ow-ui">
+        <span><span id="ow-soul-label">DUAL SOUL</span> &nbsp; HP <span id="ow-hp">30/30</span></span>
+        <span class="kills">Kills: <span id="kill-count">0</span></span>
+        <span class="route" id="route-label">Route: ???</span>
+      </div>
+    </div>
+
+    <!-- BATTLE -->
+    <div id="battle-screen" class="screen">
+      <div id="ui-top">
+        <div class="name-hp">
+          <span style="color:#8cf" id="battle-soul-label">DUAL</span>
+          <span class="hp-text">LV <span id="lv">1</span></span>
+          <div class="hp-bar-container"><div class="hp-bar" id="player-hp-bar"></div></div>
+          <span class="hp-text" id="player-hp-text">30 / 30</span>
+        </div>
+        <div class="name-hp">
+          <span id="enemy-hp-label" style="color:#f88">???</span>
+          <div class="hp-bar-container"><div class="hp-bar" id="enemy-hp-bar" style="background:#f44"></div></div>
+        </div>
+      </div>
+      <div id="enemy-area">
+        <div id="enemy-sprite">👁</div>
+        <div id="enemy-name">ENEMY</div>
+      </div>
+      <div id="dialogue-box">
+        <div class="speaker" id="battle-speaker">*</div>
+        <div id="dialogue-text">...</div>
+      </div>
+      <div id="battle-box">
+        <div id="mode-indicator">DUAL SOUL</div>
+        <div class="soul" id="soul-blue"><div class="heart"></div></div>
+        <div class="soul" id="soul-red"><div class="heart"></div></div>
+      </div>
+      <div id="menu">
+        <div class="menu-item" data-action="fight">FIGHT</div>
+        <div class="menu-item selected" data-action="act">ACT</div>
+        <div class="menu-item" data-action="item">ITEM</div>
+        <div class="menu-item" data-action="mercy">MERCY</div>
+      </div>
+      <div id="instructions">WASD = Blue soul &nbsp;|&nbsp; Arrow keys = Red soul &nbsp;|&nbsp; Dodge with both</div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="result-screen" class="screen">
+      <h2 id="result-title">YOU WIN</h2>
+      <p id="result-text"></p>
+      <button class="btn rb" id="restart-btn">PLAY AGAIN</button>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+//  UNDERTALE RED AND BLUE
+// ============================================================
+const G = {
+  screen: 'title',
+  playMode: 'multi', // 'multi' | 'blue' | 'red'
+  hardMode: false,
+  hardUnlocked: false,
+  playerName: 'Human',
+  currentSlot: 1, // 1 | 2 | 3
+  slotsMode: 'load', // 'load' | 'new'
+  pendingName: '',
+  playerHP: 30,
+  playerMaxHP: 30,
+  lv: 1,
+  kills: 0,
+  totalPossibleKills: 8,
+  spared: 0,
+  inventory: ['Bandage', 'Bandage', 'Spider Donut'],
+  flags: {},
+  currentRoom: 'cave1',
+  inBattle: false,
+  enemy: null,
+  phase: 'menu',
+  selectedMenu: 1,
+  projectiles: [],
+  attackTimer: null,
+  wave: 0,
+  invincible: false,
+  canInput: true,
+  storyIndex: 0,
+  storyScript: [],
+  playerX: 300,
+  playerY: 220,
+  keys: {},
+  npcs: [],
+  // Dual soul positions (battle box coords)
+  blue: { x: 100, y: 90 },
+  red:  { x: 180, y: 90 },
+  checkpoint: null,
+};
+
+const $ = id => document.getElementById(id);
+const screens = {
+  title: $('title-screen'),
+  name: $('name-screen'),
+  slots: $('slots-screen'),
+  select: $('select-screen'),
+  story: $('story-screen'),
+  overworld: $('overworld-screen'),
+  battle: $('battle-screen'),
+  result: $('result-screen'),
+};
+
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+  G.screen = name;
+}
+
+// ---------- ROOMS (longer path) ----------
+G.rooms = {
+  cave1: {
+    name: 'Dark Cave',
+    bg: '#0d0d18',
+    exits: [{ x: 300, y: 8, w: 40, h: 18, to: 'cave2', px: 310, py: 350 }],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 400 }, { x: 622, y: 0, w: 18, h: 400 },
+      { x: 120, y: 100, w: 70, h: 40 }, { x: 420, y: 200, w: 80, h: 50 },
+    ],
+    npcs: [
+      { id: 'flowey', x: 200, y: 180, emoji: '🌻', name: 'Flowey',
+        talk: () => startStory(getFloweyIntro()) },
+      { id: 'cp1', x: 80, y: 300, emoji: '💾', name: 'Checkpoint', talk: () => useCheckpoint() }
+    ],
+    onEnter: null
+  },
+  cave2: {
+    name: 'Crystal Passage',
+    bg: '#0a1220',
+    exits: [
+      { x: 300, y: 382, w: 40, h: 18, to: 'cave1', px: 310, py: 40 },
+      { x: 300, y: 8, w: 40, h: 18, to: 'ruinsA', px: 310, py: 350 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 400 }, { x: 622, y: 0, w: 18, h: 400 },
+      { x: 180, y: 120, w: 40, h: 120 }, { x: 400, y: 80, w: 40, h: 160 },
+    ],
+    npcs: [
+      { id: 'vegetoid', x: 140, y: 250, emoji: '🥦', name: 'Vegetoid',
+        talk: () => startBattle(enemies.vegetoid), canFight: true },
+      { id: 'migosp', x: 480, y: 160, emoji: '🐛', name: 'Migosp',
+        talk: () => startBattle(enemies.migosp), canFight: true }
+    ],
+    onEnter: () => {
+      if (!G.flags.streetBlockDone) {
+        setTimeout(() => startStreetBlockCutscene(), 300);
+      }
+    }
+  },
+  ruinsA: {
+    name: 'Old Ruins',
+    bg: '#1a1020',
+    exits: [
+      { x: 300, y: 382, w: 40, h: 18, to: 'cave2', px: 310, py: 40 },
+      { x: 600, y: 180, w: 20, h: 40, to: 'ruinsB', px: 40, py: 200 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 400 }, { x: 622, y: 0, w: 18, h: 180 },
+      { x: 622, y: 220, w: 18, h: 180 },
+      { x: 200, y: 100, w: 60, h: 40 },
+    ],
+    npcs: [
+      { id: 'napstablook', x: 300, y: 150, emoji: '👻', name: 'Napstablook',
+        talk: () => startStory(getNapstaScript()) },
+      { id: 'loox', x: 150, y: 280, emoji: '👁️', name: 'Loox',
+        talk: () => startBattle(enemies.loox), canFight: true }
+    ],
+    onEnter: null
+  },
+  ruinsB: {
+    name: 'Ruins Corridor',
+    bg: '#1a1020',
+    exits: [
+      { x: 10, y: 180, w: 20, h: 40, to: 'ruinsA', px: 580, py: 200 },
+      { x: 300, y: 8, w: 40, h: 18, to: 'snow1', px: 310, py: 350 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 180 }, { x: 0, y: 220, w: 18, h: 180 },
+      { x: 622, y: 0, w: 18, h: 400 },
+      { x: 250, y: 140, w: 50, h: 80 },
+    ],
+    npcs: [
+      { id: 'whimsun', x: 450, y: 200, emoji: '🦋', name: 'Whimsun',
+        talk: () => startBattle(enemies.whimsun), canFight: true },
+      { id: 'cp2', x: 100, y: 300, emoji: '💾', name: 'Checkpoint', talk: () => useCheckpoint() }
+    ],
+    onEnter: null
+  },
+  snow1: {
+    name: 'Snow Path',
+    bg: '#0e1a2a',
+    exits: [
+      { x: 300, y: 382, w: 40, h: 18, to: 'ruinsB', px: 310, py: 40 },
+      { x: 600, y: 180, w: 20, h: 40, to: 'snow2', px: 40, py: 200 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 400 }, { x: 622, y: 0, w: 18, h: 180 },
+      { x: 622, y: 220, w: 18, h: 180 },
+      { x: 180, y: 80, w: 50, h: 50 }, { x: 400, y: 220, w: 70, h: 40 },
+    ],
+    npcs: [
+      { id: 'snowdrake', x: 220, y: 200, emoji: '❄️', name: 'Snowdrake',
+        talk: () => startBattle(enemies.snowdrake), canFight: true },
+      { id: 'icecap', x: 480, y: 140, emoji: '🎩', name: 'Ice Cap',
+        talk: () => startBattle(enemies.icecap), canFight: true }
+    ],
+    onEnter: null
+  },
+  snow2: {
+    name: 'Snowdin Outskirts',
+    bg: '#0e1a2a',
+    exits: [
+      { x: 10, y: 180, w: 20, h: 40, to: 'snow1', px: 580, py: 200 },
+      { x: 300, y: 8, w: 40, h: 18, to: 'water1', px: 310, py: 350 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 180 }, { x: 0, y: 220, w: 18, h: 180 },
+      { x: 622, y: 0, w: 18, h: 400 },
+      { x: 280, y: 120, w: 80, h: 50 },
+    ],
+    npcs: [
+      { id: 'sans', x: 320, y: 160, emoji: '💀', name: 'Sans',
+        talk: () => startStory(getSansScript()) },
+      { id: 'doggo', x: 150, y: 280, emoji: '🐕', name: 'Doggo',
+        talk: () => startBattle(enemies.doggo), canFight: true },
+      { id: 'cp3', x: 500, y: 300, emoji: '💾', name: 'Checkpoint', talk: () => useCheckpoint() }
+    ],
+    onEnter: null
+  },
+  water1: {
+    name: 'Waterfall Edge',
+    bg: '#0a1520',
+    exits: [
+      { x: 300, y: 382, w: 40, h: 18, to: 'snow2', px: 310, py: 40 },
+      { x: 300, y: 8, w: 40, h: 18, to: 'water2', px: 310, py: 350 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 400 }, { x: 622, y: 0, w: 18, h: 400 },
+      { x: 160, y: 100, w: 40, h: 140 }, { x: 420, y: 80, w: 40, h: 180 },
+    ],
+    npcs: [
+      { id: 'aaron', x: 250, y: 200, emoji: '💪', name: 'Aaron',
+        talk: () => startBattle(enemies.aaron), canFight: true },
+      { id: 'woshua', x: 480, y: 160, emoji: '🧼', name: 'Woshua',
+        talk: () => startBattle(enemies.woshua), canFight: true }
+    ],
+    onEnter: null
+  },
+  water2: {
+    name: 'Deep Waterfall',
+    bg: '#081018',
+    exits: [
+      { x: 300, y: 382, w: 40, h: 18, to: 'water1', px: 310, py: 40 },
+      { x: 600, y: 180, w: 20, h: 40, to: 'hot1', px: 40, py: 200 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 400 }, { x: 622, y: 0, w: 18, h: 180 },
+      { x: 622, y: 220, w: 18, h: 180 },
+    ],
+    npcs: [
+      { id: 'undyne', x: 300, y: 150, emoji: '🗡️', name: 'Undyne',
+        talk: () => {
+          const r = getRoute();
+          if (r === 'pacifist') startStory(getUndynePeace());
+          else startBattle(enemies.undyne);
+        }
+      },
+      { id: 'cp4', x: 100, y: 300, emoji: '💾', name: 'Checkpoint', talk: () => useCheckpoint() }
+    ],
+    onEnter: null
+  },
+  hot1: {
+    name: 'Hotland Bridge',
+    bg: '#1a0a08',
+    exits: [
+      { x: 10, y: 180, w: 20, h: 40, to: 'water2', px: 580, py: 200 },
+      { x: 300, y: 8, w: 40, h: 18, to: 'core', px: 310, py: 350 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 180 }, { x: 0, y: 220, w: 18, h: 180 },
+      { x: 622, y: 0, w: 18, h: 400 },
+      { x: 200, y: 100, w: 50, h: 40 }, { x: 400, y: 200, w: 60, h: 40 },
+    ],
+    npcs: [
+      { id: 'mettaton', x: 320, y: 160, emoji: '📺', name: 'Mettaton',
+        talk: () => startBattle(enemies.mettaton) },
+      { id: 'vulkin', x: 150, y: 280, emoji: '🌋', name: 'Vulkin',
+        talk: () => startBattle(enemies.vulkin), canFight: true }
+    ],
+    onEnter: null
+  },
+  core: {
+    name: 'The Core',
+    bg: '#100818',
+    exits: [
+      { x: 300, y: 382, w: 40, h: 18, to: 'hot1', px: 310, py: 40 }
+    ],
+    obstacles: [
+      { x: 0, y: 0, w: 640, h: 18 }, { x: 0, y: 382, w: 640, h: 18 },
+      { x: 0, y: 0, w: 18, h: 400 }, { x: 622, y: 0, w: 18, h: 400 },
+    ],
+    npcs: [
+      { id: 'final', x: 310, y: 160, emoji: '🌻', name: 'Omega Flowey',
+        talk: () => {
+          const r = getRoute();
+          if (r === 'pacifist') startStory(getTrueEnd());
+          else if (r === 'genocide') startBattle(enemies.omegaFlowey);
+          else startStory(getNeutralEnd());
+        }
+      }
+    ],
+    onEnter: () => {
+      setTimeout(() => {
+        const r = getRoute();
+        if (r === 'pacifist') startStory(getTrueEnd());
+        else if (r === 'genocide') startBattle(enemies.omegaFlowey);
+        else startStory(getNeutralEnd());
+      }, 400);
+    }
+  }
+};
+
+// ---------- ENEMIES ----------
+const enemies = {
+  vegetoid: { name: 'Vegetoid', emoji: '🥦', hp: 28, maxHp: 28, atk: 3, acts: ['Dinner', 'Devour'], spareable: true, attackPattern: 'basic', flavor: ['Vegetoid offers greens.', 'Vegetoid is healthy.'] },
+  migosp: { name: 'Migosp', emoji: '🐛', hp: 22, maxHp: 22, atk: 2, acts: ['Talk', 'Terrorize'], spareable: true, attackPattern: 'basic', flavor: ['Migosp is alone.', 'Migosp dances nervously.'] },
+  loox: { name: 'Loox', emoji: '👁️', hp: 40, maxHp: 40, atk: 4, acts: ['Pick On', 'Don\'t Pick On'], spareable: true, attackPattern: 'basic', flavor: ['Loox stares hard.', 'Loox blinks.'] },
+  whimsun: { name: 'Whimsun', emoji: '🦋', hp: 18, maxHp: 18, atk: 2, acts: ['Console', 'Terrorize'], spareable: true, attackPattern: 'basic', flavor: ['Whimsun avoids you.', 'Whimsun is shaking.'] },
+  snowdrake: { name: 'Snowdrake', emoji: '❄️', hp: 42, maxHp: 42, atk: 4, acts: ['Laugh', 'Heckle'], spareable: true, attackPattern: 'basic', flavor: ['Snowdrake tries a joke.', 'Snowdrake is freezing.'] },
+  icecap: { name: 'Ice Cap', emoji: '🎩', hp: 38, maxHp: 38, atk: 4, acts: ['Ignore', 'Steal'], spareable: true, attackPattern: 'basic', flavor: ['Ice Cap adjusts its hat.', 'Ice Cap feels cool.'] },
+  doggo: { name: 'Doggo', emoji: '🐕', hp: 50, maxHp: 50, atk: 5, acts: ['Pet', 'Check'], spareable: true, attackPattern: 'bones', flavor: ['Doggo is alert.', 'Doggo sniffs the air.'] },
+  aaron: { name: 'Aaron', emoji: '💪', hp: 55, maxHp: 55, atk: 5, acts: ['Flex', 'Agree'], spareable: true, attackPattern: 'basic', flavor: ['Aaron flexes.', 'Aaron is impressed.'] },
+  woshua: { name: 'Woshua', emoji: '🧼', hp: 45, maxHp: 45, atk: 4, acts: ['Clean', 'Touch'], spareable: true, attackPattern: 'basic', flavor: ['Woshua wants everything clean.', 'Woshua is scrubbing.'] },
+  vulkin: { name: 'Vulkin', emoji: '🌋', hp: 48, maxHp: 48, atk: 5, acts: ['Hug', 'Encourage'], spareable: true, attackPattern: 'basic', flavor: ['Vulkin is warm.', 'Vulkin rumbles.'] },
+  undyne: { name: 'Undyne', emoji: '🗡️', hp: 110, maxHp: 110, atk: 6, acts: ['Challenge', 'Plead'], spareable: false, attackPattern: 'spears', boss: true, flavor: ['Undyne glares!', 'Spears of justice!'] },
+  mettaton: { name: 'Mettaton', emoji: '📺', hp: 100, maxHp: 100, atk: 5, acts: ['Boast', 'Pose'], spareable: false, attackPattern: 'boxes', boss: true, flavor: ['Mettaton strikes a pose!', 'Lights! Camera!'] },
+  omegaFlowey: {
+    name: 'Omega Flowey', emoji: '🌻', hp: 160, maxHp: 160, atk: 6,
+    acts: ['Talk', 'Struggle'], spareable: false, attackPattern: 'omega', boss: true,
+    flavor: ['Howdy! It\'s me, FLOWEY!', 'You IDIOT.', 'In this world, it\'s kill or BE killed!']
+  }
+};
+
+// ---------- STORY ----------
+function isMulti() { return G.playMode === 'multi'; }
+function isBlue() { return G.playMode === 'blue'; }
+function isRed() { return G.playMode === 'red'; }
+function soulName() {
+  if (isMulti()) return 'your dual SOUL';
+  if (isBlue()) return 'your BLUE SOUL of Integrity';
+  return 'your RED SOUL of Determination';
+}
+
+function getIntroScript() {
+  if (isMulti()) {
+    return [
+      { emoji: '🌌', label: 'Before', speaker: '*', text: 'Long ago, a human SOUL was torn in two.' },
+      { emoji: '💙', label: 'Before', speaker: '*', text: 'One half burned with Determination — RED.' },
+      { emoji: '💙', label: 'Before', speaker: '*', text: 'The other held Integrity — BLUE.' },
+      { emoji: '🏔️', label: 'Mount Ebott', speaker: '*', text: 'Two climbers reach the summit together. The wind howls.' },
+      { emoji: '🕳️', label: 'Falling', speaker: '*', text: 'The ground gives way. You both fall...' },
+      { emoji: '💫', label: 'The Underground', speaker: '*', text: 'Two lights flicker in the dark. Your SOULs have split — and found each other.' },
+      { emoji: '⚖️', label: 'Dual SOUL', speaker: '*', text: 'Blue on the left. Red on the right. You must control both — together.' },
+    ];
+  }
+  if (isBlue()) {
+    return [
+      { emoji: '🌌', label: 'Before', speaker: '*', text: 'Long ago, a human SOUL was torn in two.' },
+      { emoji: '💙', label: 'Before', speaker: '*', text: 'You carry only one half: Integrity — BLUE.' },
+      { emoji: '💙', label: 'Before', speaker: '*', text: 'The red half of Determination was lost... or taken.' },
+      { emoji: '🏔️', label: 'Mount Ebott', speaker: '*', text: 'You climb the mountain alone. The wind howls.' },
+      { emoji: '🕳️', label: 'Falling', speaker: '*', text: 'The ground gives way. You fall...' },
+      { emoji: '💫', label: 'The Underground', speaker: '*', text: 'A single blue light flickers in the dark.' },
+      { emoji: '💙', label: 'BLUE SOUL', speaker: '*', text: 'Your SOUL of Integrity shines. You walk this path alone — but not without hope.' },
+    ];
+  }
+  // red
+  return [
+    { emoji: '🌌', label: 'Before', speaker: '*', text: 'Long ago, a human SOUL was torn in two.' },
+    { emoji: '❤️', label: 'Before', speaker: '*', text: 'You carry only one half: Determination — RED.' },
+    { emoji: '❤️', label: 'Before', speaker: '*', text: 'The blue half of Integrity was lost... or abandoned.' },
+    { emoji: '🏔️', label: 'Mount Ebott', speaker: '*', text: 'You climb the mountain alone. The wind howls.' },
+    { emoji: '🕳️', label: 'Falling', speaker: '*', text: 'The ground gives way. You fall...' },
+    { emoji: '💫', label: 'The Underground', speaker: '*', text: 'A single red light flickers in the dark.' },
+    { emoji: '❤️', label: 'RED SOUL', speaker: '*', text: 'Your SOUL of Determination burns. You will not give up — no matter what.' },
+  ];
+}
+
+function getFloweyIntro() {
+  const n = G.playerName || 'Human';
+  if (isMulti()) {
+    return [
+      { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: 'Howdy! I\'m Flowey. Flowey the flower!' },
+      { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: n + ', is it? Two souls? How interesting...' },
+      { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: 'In this world, it\'s kill or be killed. You\'ll learn that soon enough.' },
+      { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: 'Hee hee hee... See you later, ' + n + '.' },
+      { emoji: '🌻', label: 'Dark Cave', speaker: '*', text: 'Flowey sinks into the ground.' }
+    ];
+  }
+  if (isBlue()) {
+    return [
+      { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: 'Howdy! I\'m Flowey. Flowey the flower!' },
+      { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: n + '... a blue soul of Integrity. How quaint.' },
+      { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: 'Integrity won\'t save you down here. Hee hee hee.' },
+      { emoji: '🌻', label: 'Dark Cave', speaker: '*', text: 'Flowey sinks into the ground.' }
+    ];
+  }
+  return [
+    { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: 'Howdy! I\'m Flowey. Flowey the flower!' },
+    { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: n + '... a red soul. Determination. How familiar.' },
+    { emoji: '🌻', label: 'Dark Cave', speaker: 'Flowey', text: 'Don\'t get too attached to that power. Hee hee hee.' },
+    { emoji: '🌻', label: 'Dark Cave', speaker: '*', text: 'Flowey sinks into the ground.' }
+  ];
+}
+
+function getNapstaScript() {
+  if (isMulti()) {
+    return [
+      { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'oh...... hi......' },
+      { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'you have two souls...... that\'s weird......' },
+      { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'i\'ll just...... float away now......' },
+      { emoji: '👻', label: 'Old Ruins', speaker: '*', text: 'Napstablook drifts off.' }
+    ];
+  }
+  if (isBlue()) {
+    return [
+      { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'oh...... hi......' },
+      { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'your soul is so blue...... calm......' },
+      { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'that\'s... nice, actually......' },
+      { emoji: '👻', label: 'Old Ruins', speaker: '*', text: 'Napstablook drifts off, a little less sad.' }
+    ];
+  }
+  return [
+    { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'oh...... hi......' },
+    { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'your soul is really red...... intense......' },
+    { emoji: '👻', label: 'Old Ruins', speaker: 'Napstablook', text: 'please don\'t...... stare at me too hard......' },
+    { emoji: '👻', label: 'Old Ruins', speaker: '*', text: 'Napstablook drifts away quickly.' }
+  ];
+}
+
+function getSansScript() {
+  const n = G.playerName || 'kid';
+  if (isMulti()) {
+    return [
+      { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'heh. two souls, huh? ' + n + ', right?' },
+      { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'that\'s a new one. usually it\'s just one little heart.' },
+      { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'try not to get \'em both broken.' },
+      { emoji: '💀', label: 'Snowdin', speaker: '*', text: 'Sans winks and shortcuts away.' }
+    ];
+  }
+  if (isBlue()) {
+    return [
+      { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'heh. a blue soul. ' + n + ', huh?' },
+      { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'integrity, right? that\'s a rare one these days.' },
+      { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'stay true to yourself. and watch your step.' },
+      { emoji: '💀', label: 'Snowdin', speaker: '*', text: 'Sans winks and shortcuts away.' }
+    ];
+  }
+  return [
+    { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'heh. a red soul. ' + n + '.' },
+    { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'determination. i\'ve seen that look before.' },
+    { emoji: '💀', label: 'Snowdin', speaker: 'Sans', text: 'just... try not to burn everything down, okay?' },
+    { emoji: '💀', label: 'Snowdin', speaker: '*', text: 'Sans studies you a moment, then shortcuts away.' }
+  ];
+}
+
+function getUndynePeace() {
+  if (isMulti()) {
+    return [
+      { emoji: '🗡️', label: 'Waterfall', speaker: 'Undyne', text: 'You... you haven\'t hurt anyone.' },
+      { emoji: '🗡️', label: 'Waterfall', speaker: 'Undyne', text: 'Both halves of your SOUL are clean. Go.' },
+      { emoji: '🗡️', label: 'Waterfall', speaker: '*', text: 'Undyne steps aside.' }
+    ];
+  }
+  if (isBlue()) {
+    return [
+      { emoji: '🗡️', label: 'Waterfall', speaker: 'Undyne', text: 'You... you haven\'t hurt anyone.' },
+      { emoji: '🗡️', label: 'Waterfall', speaker: 'Undyne', text: 'A pure blue SOUL. Integrity without bloodshed. I respect that.' },
+      { emoji: '🗡️', label: 'Waterfall', speaker: '*', text: 'Undyne steps aside.' }
+    ];
+  }
+  return [
+    { emoji: '🗡️', label: 'Waterfall', speaker: 'Undyne', text: 'You... you haven\'t hurt anyone.' },
+    { emoji: '🗡️', label: 'Waterfall', speaker: 'Undyne', text: 'Even with a red SOUL of Determination... you chose mercy. Hah!' },
+    { emoji: '🗡️', label: 'Waterfall', speaker: '*', text: 'Undyne steps aside, almost smiling.' }
+  ];
+}
+
+function getTrueEnd() {
+  if (isMulti()) {
+    return [
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: '...You spared every single one.' },
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'Red and Blue, held in balance through mercy. I... don\'t understand.' },
+      { emoji: '✨', label: 'True Ending', speaker: '*', text: 'The two halves of your SOUL glow brighter...' },
+      { emoji: '✨', label: 'True Ending', speaker: '*', text: 'They begin to merge. Something new is born.', ending: 'pacifist' }
+    ];
+  }
+  if (isBlue()) {
+    return [
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'You spared every monster.' },
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'Integrity alone carried you here. How... boring. And kind.' },
+      { emoji: '✨', label: 'True Ending', speaker: '*', text: 'Your blue SOUL shines with quiet strength...' },
+      { emoji: '✨', label: 'True Ending', speaker: '*', text: 'Somewhere, a lost red light flickers in answer.', ending: 'pacifist' }
+    ];
+  }
+  return [
+    { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'You spared every monster.' },
+    { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'Determination without cruelty. A rare fire indeed.' },
+    { emoji: '✨', label: 'True Ending', speaker: '*', text: 'Your red SOUL burns bright and steady...' },
+    { emoji: '✨', label: 'True Ending', speaker: '*', text: 'Somewhere, a lost blue light answers its call.', ending: 'pacifist' }
+  ];
+}
+
+function getNeutralEnd() {
+  if (isMulti()) {
+    return [
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'You walked a mixed path.' },
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'Some lived. Some died. Both of you share the weight.' },
+      { emoji: '🌻', label: 'The Core', speaker: '*', text: 'Flowey watches you leave...', ending: 'neutral' }
+    ];
+  }
+  if (isBlue()) {
+    return [
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'You walked a mixed path.' },
+      { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'Integrity bent, but did not fully break.' },
+      { emoji: '🌻', label: 'The Core', speaker: '*', text: 'Flowey watches you leave...', ending: 'neutral' }
+    ];
+  }
+  return [
+    { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'You walked a mixed path.' },
+    { emoji: '🌻', label: 'The Core', speaker: 'Flowey', text: 'Determination drove you — sometimes too far.' },
+    { emoji: '🌻', label: 'The Core', speaker: '*', text: 'Flowey watches you leave...', ending: 'neutral' }
+  ];
+}
+
+// Legacy names used by room callbacks — resolve at call time
+const introScript = null; // use getIntroScript()
+const napstaScript = null;
+const sansScript = null;
+const undynePeace = null;
+const trueEnd = null;
+const neutralEnd = null;
+
+// ---------- ROUTE ----------
+function getRoute() {
+  if (G.kills === 0) return 'pacifist';
+  if (G.kills >= G.totalPossibleKills) return 'genocide';
+  return 'neutral';
+}
+
+function updateRouteUI() {
+  const r = getRoute();
+  const label = $('route-label');
+  if (r === 'pacifist') { label.textContent = 'Route: PACIFIST'; label.style.color = '#4af'; }
+  else if (r === 'genocide') { label.textContent = 'Route: GENOCIDE'; label.style.color = '#f44'; }
+  else { label.textContent = 'Route: NEUTRAL'; label.style.color = '#ff0'; }
+  $('kill-count').textContent = G.kills;
+  $('ow-hp').textContent = `${G.playerHP}/${G.playerMaxHP}`;
+  const owLabel = $('ow-soul-label');
+  if (owLabel) {
+    let base = 'DUAL SOUL';
+    let col = '#8cf';
+    if (G.playMode === 'blue') { base = 'BLUE SOUL'; col = '#4af'; }
+    else if (G.playMode === 'red') { base = 'RED SOUL'; col = '#f44'; }
+    if (G.hardMode) base += ' [HARD]';
+    owLabel.textContent = base;
+    owLabel.style.color = G.hardMode ? '#f44' : col;
+  }
+}
+
+// ---------- CHECKPOINT ----------
+const SAVE_PREFIX = 'undertaleRedBlue_slot';
+const HARD_KEY = 'undertaleRedBlue_hardUnlocked';
+
+function isHardUnlocked() {
+  try { return localStorage.getItem(HARD_KEY) === '1'; } catch (e) { return false; }
+}
+function unlockHardMode() {
+  try { localStorage.setItem(HARD_KEY, '1'); } catch (e) {}
+  G.hardUnlocked = true;
+}
+function refreshHardToggle() {
+  const row = $('hard-mode-row');
+  const btn = $('hard-toggle-btn');
+  if (!row || !btn) return;
+  if (G.hardUnlocked || isHardUnlocked()) {
+    G.hardUnlocked = true;
+    row.style.display = 'block';
+    btn.textContent = G.hardMode ? 'HARD MODE: ON' : 'HARD MODE: OFF';
+    btn.style.borderColor = G.hardMode ? '#f44' : '#888';
+    btn.style.color = G.hardMode ? '#f44' : '#aaa';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+const TAKEN_NAMES = [
+  'sans', 'toriel', 'undyne', 'asgore', 'papyrus', 'alphys', 'mettaton',
+  'flowey', 'omega flowey', 'napstablook', 'vegetoid', 'migosp', 'loox',
+  'whimsun', 'snowdrake', 'ice cap', 'icecap', 'doggo', 'aaron', 'woshua',
+  'vulkin', 'froggit', 'moldsmal', 'temmie', 'gaster'
+];
+const WARN_NAMES = ['chara', 'frisk'];
+
+function slotKey(n) { return SAVE_PREFIX + n; }
+
+function buildSaveData() {
+  return {
+    room: G.currentRoom,
+    x: G.playerX,
+    y: G.playerY,
+    hp: G.playerHP,
+    maxHp: G.playerMaxHP,
+    inventory: [...G.inventory],
+    flags: { ...G.flags },
+    kills: G.kills,
+    lv: G.lv,
+    spared: G.spared,
+    playMode: G.playMode,
+    hardMode: !!G.hardMode,
+    playerName: G.playerName,
+    slot: G.currentSlot,
+    savedAt: Date.now()
+  };
+}
+
+function writeSlot(slot, data) {
+  try {
+    localStorage.setItem(slotKey(slot), JSON.stringify(data));
+  } catch (e) {}
+}
+
+function readSlot(slot) {
+  try {
+    const raw = localStorage.getItem(slotKey(slot));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearSlot(slot) {
+  try { localStorage.removeItem(slotKey(slot)); } catch (e) {}
+  if (G.currentSlot === slot) G.checkpoint = null;
+}
+
+function clearSave() {
+  // Only clear current slot when starting fresh into that slot
+  if (G.currentSlot) clearSlot(G.currentSlot);
+  G.checkpoint = null;
+}
+
+function useCheckpoint() {
+  G.playerHP = G.playerMaxHP;
+  G.checkpoint = buildSaveData();
+  G.checkpoint.hp = G.playerHP;
+  writeSlot(G.currentSlot, G.checkpoint);
+  updateRouteUI();
+  startStory([
+    { emoji: '💾', label: 'Checkpoint', speaker: '*', text: 'You touch the save point.' },
+    { emoji: '💾', label: 'Checkpoint', speaker: '*', text: `Slot ${G.currentSlot} saved. HP ${G.playerHP}/${G.playerMaxHP}` },
+    { emoji: '💾', label: 'Checkpoint', speaker: '*', text: G.playerName + '... your progress is stored.' }
+  ]);
+}
+
+function applySaveData(c) {
+  if (!c) return false;
+  G.currentRoom = c.room || 'cave1';
+  G.playerX = c.x || 300;
+  G.playerY = c.y || 280;
+  G.playerHP = c.hp != null ? c.hp : 30;
+  G.playerMaxHP = c.maxHp != null ? c.maxHp : 30;
+  G.inventory = Array.isArray(c.inventory) ? [...c.inventory] : ['Bandage'];
+  G.flags = c.flags && typeof c.flags === 'object' ? { ...c.flags } : {};
+  G.kills = c.kills || 0;
+  G.lv = c.lv || 1;
+  G.spared = c.spared || 0;
+  if (c.playMode) G.playMode = c.playMode;
+  G.hardMode = !!c.hardMode;
+  if (c.playerName) G.playerName = c.playerName;
+  if (c.slot) G.currentSlot = c.slot;
+  G.checkpoint = c;
+  loadRoom(G.currentRoom);
+  return true;
+}
+
+function loadCheckpoint() {
+  if (!G.checkpoint) {
+    G.checkpoint = readSlot(G.currentSlot);
+  }
+  if (!G.checkpoint) {
+    // try any slot
+    for (let i = 1; i <= 3; i++) {
+      const s = readSlot(i);
+      if (s) { G.checkpoint = s; G.currentSlot = i; break; }
+    }
+  }
+  if (!G.checkpoint) return false;
+  return applySaveData(G.checkpoint);
+}
+
+function hasSavedGame() {
+  return !!(readSlot(1) || readSlot(2) || readSlot(3));
+}
+
+function refreshTitleButtons() {
+  const cont = $('continue-btn');
+  if (!cont) return;
+  cont.style.display = hasSavedGame() ? 'inline-block' : 'none';
+}
+
+function checkName(raw) {
+  const name = (raw || '').trim();
+  if (!name) return { ok: false, msg: 'You must enter a name.' };
+  if (name.length > 12) return { ok: false, msg: 'Name is too long.' };
+  const lower = name.toLowerCase();
+  if (WARN_NAMES.includes(lower)) {
+    return {
+      ok: false,
+      warn: true,
+      msg: 'Warning: This name will make your life a living nightmare. Are you sure about this?'
+    };
+  }
+  // Taken names (excluding warn names which are allowed after confirm)
+  if (TAKEN_NAMES.includes(lower) && !WARN_NAMES.includes(lower)) {
+    return { ok: false, msg: "That name's taken." };
+  }
+  // Also block exact enemy display names case-insensitively already in list
+  return { ok: true, name };
+}
+
+function setNameMsg(text, cls) {
+  const el = $('name-msg');
+  el.textContent = text || '';
+  el.className = cls || '';
+}
+
+function showNameWarningUI(show) {
+  $('name-confirm-btn').style.display = show ? 'none' : 'inline-block';
+  $('name-yes-btn').style.display = show ? 'inline-block' : 'none';
+  $('name-no-btn').style.display = show ? 'inline-block' : 'none';
+}
+
+function openSlotsScreen(mode) {
+  G.slotsMode = mode; // 'load' | 'new'
+  G._selectedSlot = null;
+  $('slots-title').textContent = mode === 'load' ? 'CONTINUE' : 'CHOOSE SAVE SLOT';
+  $('slots-hint').textContent = mode === 'load'
+    ? 'Select a save to continue.'
+    : 'Choose a slot for your new adventure.';
+  $('slots-delete-btn').style.display = mode === 'load' ? 'inline-block' : 'none';
+  renderSlotsList();
+  showScreen('slots');
+}
+
+function renderSlotsList() {
+  const list = $('slots-list');
+  list.innerHTML = '';
+  for (let i = 1; i <= 3; i++) {
+    const data = readSlot(i);
+    const card = document.createElement('div');
+    card.className = 'slot-card' + (data ? '' : ' empty');
+    card.dataset.slot = i;
+    if (G._selectedSlot === i) card.classList.add('selected');
+    if (data) {
+      const modeLabel = data.playMode === 'multi' ? 'Multi' : (data.playMode === 'blue' ? 'Blue' : 'Red');
+      const hardLabel = data.hardMode ? ' &nbsp; <span style="color:#f44">HARD</span>' : '';
+      const when = data.savedAt ? new Date(data.savedAt).toLocaleString() : '';
+      card.innerHTML =
+        `<div class="slot-title">Slot ${i} — ${escapeHtml(data.playerName || '???')}</div>` +
+        `<div class="slot-info">LV ${data.lv || 1} &nbsp; HP ${data.hp}/${data.maxHp}<br>` +
+        `Room: ${escapeHtml(data.room || '?')} &nbsp; Kills: ${data.kills || 0}<br>` +
+        `Mode: ${modeLabel}${hardLabel}${when ? '<br>' + when : ''}</div>`;
+    } else {
+      card.innerHTML =
+        `<div class="slot-title">Slot ${i}</div>` +
+        `<div class="slot-empty-label">— EMPTY —</div>`;
+    }
+    card.addEventListener('click', () => {
+      G._selectedSlot = i;
+      renderSlotsList();
+    });
+    list.appendChild(card);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+}
+
+// ---------- STORY ENGINE ----------
+function startStory(script) {
+  G.storyScript = script;
+  G.storyIndex = 0;
+  showScreen('story');
+  showStoryLine();
+}
+
+// Street-blocking cutscene in Crystal Passage (cave2)
+function startStreetBlockCutscene() {
+  if (G.flags.streetBlockDone || G.screen !== 'overworld') return;
+  G._streetCutscene = true;
+  G.canInput = false;
+
+  const map = $('map');
+  const sx = (v) => v * G.scaleX;
+  const sy = (v) => v * G.scaleY;
+
+  // Crowd blocking the upper path toward the north exit
+  const crowdSpots = [
+    { x: 260, y: 40, e: '🧑' }, { x: 290, y: 35, e: '👩' }, { x: 320, y: 42, e: '🧔' },
+    { x: 250, y: 55, e: '👧' }, { x: 310, y: 58, e: '👦' }, { x: 340, y: 50, e: '🧓' },
+    { x: 275, y: 70, e: '🧑‍🎤' }, { x: 305, y: 68, e: '👩‍🎤' }, { x: 335, y: 72, e: '🎺' },
+    { x: 255, y: 85, e: '🎷' }, { x: 325, y: 88, e: '🥁' },
+  ];
+  G._crowdEls = [];
+  crowdSpots.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'crowd-person';
+    el.textContent = s.e;
+    el.style.left = sx(s.x) + 'px';
+    el.style.top = sy(s.y) + 'px';
+    map.appendChild(el);
+    G._crowdEls.push({ el, x: s.x, y: s.y });
+  });
+
+  // Temporary barrier so you can't walk through / exit north
+  G._streetBarrier = { x: 240, y: 20, w: 160, h: 90 };
+
+  const n = G.playerName || 'Human';
+  const lines = [
+    { emoji: '👥', label: 'Crystal Passage', speaker: 'People', text: "We're all just blocking the street. We're all just blocking the street." },
+    { emoji: '💔', label: 'Crystal Passage', speaker: n, text: "Oh, come on, I gotta get outta here." },
+    { emoji: '👥', label: 'Crystal Passage', speaker: 'People', text: "5 trumpets do the job of one. We're all just blocking the street." },
+    { emoji: '💔', label: 'Crystal Passage', speaker: n, text: 'Seriously??' },
+    { emoji: '👥', label: 'Crystal Passage', speaker: 'People', text: "Half the band isn't in the band. We're all just blocking the street." },
+  ];
+
+  G.storyScript = lines;
+  G.storyIndex = 0;
+  G._streetOnDone = () => {
+    // People pass by / leave
+    (G._crowdEls || []).forEach((c, i) => {
+      setTimeout(() => {
+        const dir = i % 2 === 0 ? -80 : 700;
+        c.el.style.left = (dir * G.scaleX) + 'px';
+        c.el.classList.add('leaving');
+      }, i * 80);
+    });
+    setTimeout(() => {
+      (G._crowdEls || []).forEach(c => c.el.remove());
+      G._crowdEls = [];
+      G._streetBarrier = null;
+      G.flags.streetBlockDone = true;
+      G._streetCutscene = false;
+      G.canInput = true;
+      // Save flag if we have a slot
+      if (G.checkpoint || G.currentSlot) {
+        const data = buildSaveData();
+        data.flags = { ...G.flags };
+        G.checkpoint = data;
+        writeSlot(G.currentSlot, data);
+      }
+      loadRoom(G.currentRoom);
+    }, 1200);
+  };
+
+  showScreen('story');
+  showStoryLine();
+}
+
+function finishStoryScript() {
+  if (G._streetOnDone) {
+    const fn = G._streetOnDone;
+    G._streetOnDone = null;
+    // Stay on overworld under the crowd while they leave
+    showScreen('overworld');
+    fn();
+    return;
+  }
+  if (G._isIntro) {
+    G._isIntro = false;
+    G.playerX = 300; G.playerY = 280;
+    loadRoom('cave1');
+    return;
+  }
+  const last = G.storyScript[G.storyScript.length - 1];
+  if (last && last.ending) { endGame(last.ending); return; }
+  loadRoom(G.currentRoom);
+}
+
+function showStoryLine() {
+  if (G.storyIndex >= G.storyScript.length) {
+    finishStoryScript();
+    return;
+  }
+  const line = G.storyScript[G.storyIndex];
+  $('story-emoji').textContent = line.emoji || '•';
+  $('scene-label').textContent = line.label || '';
+  $('story-speaker').textContent = line.speaker || '*';
+  $('story-text').textContent = line.text || '';
+}
+
+function advanceStory() {
+  G.storyIndex++;
+  if (G.storyIndex >= G.storyScript.length) {
+    finishStoryScript();
+    return;
+  }
+  showStoryLine();
+}
+
+// ---------- OVERWORLD ----------
+// Design coords are based on 640 x 400; we scale to the actual map size
+const DESIGN_W = 640, DESIGN_H = 400;
+G.scaleX = 1;
+G.scaleY = 1;
+
+function loadRoom(id) {
+  G.currentRoom = id;
+  const room = G.rooms[id];
+  const map = $('map');
+  map.innerHTML = '';
+  map.style.background = room.bg || '#111';
+
+  showScreen('overworld');
+  // Measure after visible
+  const mw = map.clientWidth || 800;
+  const mh = map.clientHeight || 560;
+  G.scaleX = mw / DESIGN_W;
+  G.scaleY = mh / DESIGN_H;
+
+  const sx = (v) => v * G.scaleX;
+  const sy = (v) => v * G.scaleY;
+
+  // Keep player in design-space bounds
+  G.playerX = Math.max(20, Math.min(DESIGN_W - 30, G.playerX));
+  G.playerY = Math.max(20, Math.min(DESIGN_H - 30, G.playerY));
+
+  const player = document.createElement('div');
+  player.id = 'player';
+  if (G.playMode === 'multi') {
+    player.className = '';
+    player.innerHTML = '<div class="b"></div><div class="r"></div>';
+  } else if (G.playMode === 'blue') {
+    player.className = 'single';
+    player.innerHTML = '<div class="b"></div>';
+  } else {
+    player.className = 'single';
+    player.innerHTML = '<div class="r"></div>';
+  }
+  player.style.left = sx(G.playerX) + 'px';
+  player.style.top = sy(G.playerY) + 'px';
+  map.appendChild(player);
+
+  // Full-border walls using design coords that scale to edges
+  const edgeWalls = [
+    { x: 0, y: 0, w: DESIGN_W, h: 16 },
+    { x: 0, y: DESIGN_H - 16, w: DESIGN_W, h: 16 },
+    { x: 0, y: 0, w: 16, h: DESIGN_H },
+    { x: DESIGN_W - 16, y: 0, w: 16, h: DESIGN_H },
+  ];
+  // Interior obstacles from room (skip old full-edge walls that used 640/400)
+  const interiors = (room.obstacles || []).filter(o => {
+    // skip near-full-width/height border walls from old data
+    if (o.w >= 600 && o.h <= 25) return false;
+    if (o.h >= 380 && o.w <= 25) return false;
+    return true;
+  });
+
+  G.scaledObstacles = [];
+  [...edgeWalls, ...interiors].forEach(o => {
+    const el = document.createElement('div');
+    el.className = 'obstacle';
+    el.style.left = sx(o.x) + 'px'; el.style.top = sy(o.y) + 'px';
+    el.style.width = sx(o.w) + 'px'; el.style.height = sy(o.h) + 'px';
+    map.appendChild(el);
+    G.scaledObstacles.push({ x: sx(o.x), y: sy(o.y), w: sx(o.w), h: sy(o.h) });
+  });
+
+  G.scaledExits = [];
+  (room.exits || []).forEach(e => {
+    const el = document.createElement('div');
+    el.className = 'exit';
+    el.style.left = sx(e.x) + 'px'; el.style.top = sy(e.y) + 'px';
+    el.style.width = sx(e.w) + 'px'; el.style.height = sy(e.h) + 'px';
+    el.style.background = 'transparent';
+    map.appendChild(el);
+    G.scaledExits.push({
+      x: sx(e.x), y: sy(e.y), w: sx(e.w), h: sy(e.h),
+      to: e.to, px: e.px, py: e.py
+    });
+  });
+
+  G.npcs = [];
+  (room.npcs || []).forEach(n => {
+    if (n.canFight && (G.flags['killed_' + n.id] || G.flags['spared_' + n.id])) return;
+    const el = document.createElement('div');
+    el.className = 'npc';
+    el.textContent = n.emoji;
+    el.style.left = sx(n.x) + 'px'; el.style.top = sy(n.y) + 'px';
+    map.appendChild(el);
+    G.npcs.push({ ...n, el, x: n.x, y: n.y, dispX: sx(n.x), dispY: sy(n.y) });
+  });
+
+  updateRouteUI();
+  if (room.onEnter) room.onEnter();
+}
+
+function owUpdate() {
+  if (G.screen !== 'overworld') return;
+  const speed = 2.8;
+  let dx = 0, dy = 0;
+  if (G.keys.up || G.keys.w) dy = -speed;
+  if (G.keys.down || G.keys.s) dy = speed;
+  if (G.keys.left || G.keys.a) dx = -speed;
+  if (G.keys.right || G.keys.d) dx = speed;
+
+  if (dx || dy) {
+    const nx = G.playerX + dx, ny = G.playerY + dy;
+    if (!owCollide(nx, ny)) {
+      G.playerX = nx; G.playerY = ny;
+      const p = $('player');
+      if (p) {
+        p.style.left = (G.playerX * G.scaleX) + 'px';
+        p.style.top = (G.playerY * G.scaleY) + 'px';
+      }
+    }
+  }
+
+  // Exits in design coords
+  const room = G.rooms[G.currentRoom];
+  (room.exits || []).forEach(e => {
+    // Block north exit of cave2 until street cutscene is done
+    if (G.currentRoom === 'cave2' && !G.flags.streetBlockDone && e.to === 'ruinsA') return;
+    if (G.playerX + 12 > e.x && G.playerX < e.x + e.w &&
+        G.playerY + 12 > e.y && G.playerY < e.y + e.h) {
+      G.playerX = e.px; G.playerY = e.py;
+      loadRoom(e.to);
+    }
+  });
+}
+
+function owCollide(x, y) {
+  // Collision in design space
+  const pw = 18, ph = 14;
+  const room = G.rooms[G.currentRoom];
+  // Edge walls
+  if (x < 16 || y < 16 || x + pw > DESIGN_W - 16 || y + ph > DESIGN_H - 16) return true;
+  // Street crowd barrier
+  if (G._streetBarrier) {
+    const o = G._streetBarrier;
+    if (x < o.x + o.w && x + pw > o.x && y < o.y + o.h && y + ph > o.y) return true;
+  }
+  for (const o of (room.obstacles || [])) {
+    if (o.w >= 600 && o.h <= 25) continue;
+    if (o.h >= 380 && o.w <= 25) continue;
+    if (x < o.x + o.w && x + pw > o.x && y < o.y + o.h && y + ph > o.y) return true;
+  }
+  return false;
+}
+
+function tryInteract() {
+  if (G.screen !== 'overworld') return;
+  for (const n of G.npcs) {
+    if (Math.abs(G.playerX - n.x) < 40 && Math.abs(G.playerY - n.y) < 40) {
+      n.talk();
+      return;
+    }
+  }
+}
+
+// ---------- BATTLE (DUAL SOUL) ----------
+function startBattle(enemyData) {
+  G.inBattle = true;
+  // Hard mode: tougher enemies
+  const hpMul = G.hardMode ? 1.35 : 1;
+  const atkBonus = G.hardMode ? 2 : 0;
+  G.enemy = {
+    ...enemyData,
+    hp: Math.round(enemyData.hp * hpMul),
+    maxHp: Math.round(enemyData.maxHp * hpMul),
+    atk: enemyData.atk + atkBonus
+  };
+  G.phase = 'menu';
+  G.selectedMenu = 1;
+  G.wave = 0;
+  G.projectiles = [];
+  G.canInput = true;
+  G.blue = { x: 90, y: 90 };
+  G.red = { x: 190, y: 90 };
+
+  if (enemyData.name === 'Undyne') {
+    G.playerHP = G.hardMode ? 38 : 45;
+    G.playerMaxHP = G.playerHP;
+  }
+  if (enemyData.name === 'Mettaton') {
+    G.playerHP = G.hardMode ? 42 : 50;
+    G.playerMaxHP = G.playerHP;
+  }
+  if (enemyData.name === 'Omega Flowey') {
+    G.playerHP = G.hardMode ? 70 : 90;
+    G.playerMaxHP = G.playerHP;
+  }
+
+  $('enemy-sprite').textContent = enemyData.emoji;
+  $('enemy-name').textContent = enemyData.name;
+  $('enemy-hp-label').textContent = enemyData.name;
+  $('dialogue-text').textContent = enemyData.flavor[0] || 'A monster appears!';
+  $('battle-speaker').textContent = '*';
+  $('mode-indicator').style.display = 'none';
+  document.getElementById('menu').style.opacity = '1';
+  document.getElementById('menu').style.pointerEvents = 'auto';
+
+  const label = $('battle-soul-label');
+  if (G.playMode === 'multi') {
+    if (label) { label.textContent = 'DUAL'; label.style.color = '#8cf'; }
+    $('instructions').textContent = 'WASD = Blue soul  |  Arrow keys = Red soul  |  Dodge with both';
+  } else if (G.playMode === 'blue') {
+    if (label) { label.textContent = 'BLUE'; label.style.color = '#4af'; }
+    $('instructions').textContent = 'BLUE SOUL — Move with WASD or Arrow keys';
+  } else {
+    if (label) { label.textContent = 'RED'; label.style.color = '#f44'; }
+    $('instructions').textContent = 'RED SOUL — Move with WASD or Arrow keys';
+  }
+
+  placeSouls();
+  updateBattleUI();
+  selectMenu(1);
+  showScreen('battle');
+}
+
+function placeSouls() {
+  const b = $('soul-blue'), r = $('soul-red');
+  if (!b || !r) return;
+  if (G.playMode === 'multi') {
+    b.style.display = 'block';
+    r.style.display = 'block';
+    b.style.left = G.blue.x + 'px';
+    b.style.top = G.blue.y + 'px';
+    r.style.left = G.red.x + 'px';
+    r.style.top = G.red.y + 'px';
+  } else if (G.playMode === 'blue') {
+    b.style.display = 'block';
+    r.style.display = 'none';
+    b.style.left = G.blue.x + 'px';
+    b.style.top = G.blue.y + 'px';
+  } else {
+    b.style.display = 'none';
+    r.style.display = 'block';
+    r.style.left = G.red.x + 'px';
+    r.style.top = G.red.y + 'px';
+  }
+}
+
+function updateBattleUI() {
+  const pct = (G.playerHP / G.playerMaxHP) * 100;
+  $('player-hp-bar').style.width = pct + '%';
+  $('player-hp-text').textContent = `${G.playerHP} / ${G.playerMaxHP}`;
+  $('lv').textContent = G.lv;
+  if (G.enemy) {
+    $('enemy-hp-bar').style.width = ((G.enemy.hp / G.enemy.maxHp) * 100) + '%';
+  }
+}
+
+function setBattleDialogue(text, speaker = '*') {
+  $('battle-speaker').textContent = speaker;
+  $('dialogue-text').textContent = text;
+}
+
+function selectMenu(idx) {
+  G.selectedMenu = idx;
+  document.querySelectorAll('.menu-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+}
+
+function spawnProjectile(fromDir, type = 'spear') {
+  const box = $('battle-box');
+  const sizeW = 280, sizeH = 180;
+  const p = document.createElement('div');
+  p.className = 'projectile ' + type;
+  let x, y, vx, vy;
+  const speed = 2.0 + G.wave * 0.2;
+  switch (fromDir) {
+    case 0: x = 20 + Math.random() * 240; y = -20; vx = 0; vy = speed; break;
+    case 1: x = sizeW + 12; y = 15 + Math.random() * 150; vx = -speed; vy = 0; break;
+    case 2: x = 20 + Math.random() * 240; y = sizeH + 12; vx = 0; vy = -speed; break;
+    case 3: x = -12; y = 15 + Math.random() * 150; vx = speed; vy = 0; break;
+  }
+  if (type === 'spear') {
+    if (fromDir === 0) p.style.transform = 'rotate(180deg)';
+    else if (fromDir === 1) p.style.transform = 'rotate(-90deg)';
+    else if (fromDir === 3) p.style.transform = 'rotate(90deg)';
+  }
+  p.style.left = x + 'px'; p.style.top = y + 'px';
+  box.appendChild(p);
+  G.projectiles.push({ el: p, x, y, vx, vy, type });
+}
+
+function spawnBone() {
+  const box = $('battle-box');
+  const p = document.createElement('div');
+  p.className = 'projectile bone';
+  const fromLeft = Math.random() < 0.5;
+  const y = 30 + Math.random() * 120;
+  const x = fromLeft ? -20 : 290;
+  const speed = 2.4;
+  p.style.left = x + 'px'; p.style.top = y + 'px';
+  box.appendChild(p);
+  G.projectiles.push({ el: p, x, y, vx: fromLeft ? speed : -speed, vy: 0, type: 'bone' });
+}
+
+function spawnAimed() {
+  const box = $('battle-box');
+  const p = document.createElement('div');
+  p.className = 'projectile pellet';
+  const edge = Math.floor(Math.random() * 4);
+  let x, y;
+  if (edge === 0) { x = Math.random() * 280; y = -8; }
+  else if (edge === 1) { x = 288; y = Math.random() * 180; }
+  else if (edge === 2) { x = Math.random() * 280; y = 188; }
+  else { x = -8; y = Math.random() * 180; }
+  // Aim at active soul(s)
+  let tx, ty;
+  if (G.playMode === 'multi') {
+    tx = (G.blue.x + G.red.x) / 2;
+    ty = (G.blue.y + G.red.y) / 2;
+  } else if (G.playMode === 'blue') {
+    tx = G.blue.x; ty = G.blue.y;
+  } else {
+    tx = G.red.x; ty = G.red.y;
+  }
+  const dx = tx - x, dy = ty - y;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const speed = 2.2;
+  p.style.left = x + 'px'; p.style.top = y + 'px';
+  box.appendChild(p);
+  G.projectiles.push({ el: p, x, y, vx: (dx / dist) * speed, vy: (dy / dist) * speed, type: 'pellet' });
+}
+
+function updateProjectiles() {
+  const hitR = 11;
+  for (let i = G.projectiles.length - 1; i >= 0; i--) {
+    const proj = G.projectiles[i];
+    proj.x += proj.vx;
+    proj.y += proj.vy;
+    proj.el.style.left = proj.x + 'px';
+    proj.el.style.top = proj.y + 'px';
+
+    if (proj.x < -50 || proj.x > 330 || proj.y < -50 || proj.y > 230) {
+      proj.el.remove();
+      G.projectiles.splice(i, 1);
+      continue;
+    }
+
+    // Hit active soul(s)?
+    let hit = false;
+    if (G.playMode === 'multi' || G.playMode === 'blue') {
+      const db = Math.hypot(proj.x + 4 - G.blue.x - 6, proj.y + 4 - G.blue.y - 6);
+      if (db < hitR) hit = true;
+    }
+    if (G.playMode === 'multi' || G.playMode === 'red') {
+      const dr = Math.hypot(proj.x + 4 - G.red.x - 6, proj.y + 4 - G.red.y - 6);
+      if (dr < hitR) hit = true;
+    }
+    if (hit && !G.invincible) {
+      // Green healing pellets
+      if (proj.heal) {
+        G.playerHP = Math.min(G.playerMaxHP, G.playerHP + 3);
+        updateBattleUI();
+        proj.el.remove();
+        G.projectiles.splice(i, 1);
+        continue;
+      }
+      const dmg = G.enemy ? G.enemy.atk : 3;
+      G.playerHP = Math.max(0, G.playerHP - dmg);
+      updateBattleUI();
+      G.invincible = true;
+      if (G.playMode !== 'red') $('soul-blue').classList.add('flash');
+      if (G.playMode !== 'blue') $('soul-red').classList.add('flash');
+      setTimeout(() => {
+        $('soul-blue').classList.remove('flash');
+        $('soul-red').classList.remove('flash');
+        G.invincible = false;
+      }, 450);
+      proj.el.remove();
+      G.projectiles.splice(i, 1);
+      if (G.playerHP <= 0) { endBattle(false); return; }
+    }
+  }
+}
+
+function startAttackPhase() {
+  G.phase = 'attack';
+  G.canInput = true;
+  G.wave = 0;
+  $('mode-indicator').style.display = 'block';
+  if (G.playMode === 'multi') $('mode-indicator').textContent = 'DUAL SOUL — CONTROL BOTH';
+  else if (G.playMode === 'blue') $('mode-indicator').textContent = 'BLUE SOUL — INTEGRITY';
+  else $('mode-indicator').textContent = 'RED SOUL — DETERMINATION';
+  document.getElementById('menu').style.opacity = '0.3';
+  document.getElementById('menu').style.pointerEvents = 'none';
+  if (G.playMode === 'multi') {
+    G.blue = { x: 90, y: 90 };
+    G.red = { x: 190, y: 90 };
+  } else {
+    G.blue = { x: 134, y: 84 };
+    G.red = { x: 134, y: 84 };
+  }
+  placeSouls();
+  if (G.enemy && G.enemy.attackPattern === 'omega') {
+    runOmegaCycle();
+  } else {
+    runWave();
+  }
+}
+
+// Omega Flowey: Flowey 20s → TV ! 3s → 5 SOULs 10s → green heal 8–10s → loop / end
+function runOmegaCycle() {
+  if (G.phase !== 'attack') return;
+  G.omegaTimers = [];
+
+  const clearOmega = () => {
+    (G.omegaTimers || []).forEach(t => clearTimeout(t));
+    G.omegaTimers = [];
+    if (G.omegaInterval) { clearInterval(G.omegaInterval); G.omegaInterval = null; }
+  };
+
+  // --- Phase 1: Flowey attacks for 20s ---
+  setBattleDialogue(G.hardMode ? 'Flowey: "You IDIOTS! HARD MODE!"' : 'Flowey: "You IDIOTS!"');
+  $('enemy-sprite').textContent = '🌻';
+  $('mode-indicator').textContent = G.hardMode ? 'OMEGA FLOWEY — HARD' : 'OMEGA FLOWEY — ATTACK';
+  let elapsed = 0;
+  const floweyTick = G.hardMode ? 380 : 500;
+  G.omegaInterval = setInterval(() => {
+    if (G.phase !== 'attack') { clearOmega(); return; }
+    spawnProjectile(Math.floor(Math.random() * 4), Math.random() < 0.5 ? 'spear' : 'pellet');
+    if (Math.random() < (G.hardMode ? 0.55 : 0.4)) spawnAimed();
+    if (G.hardMode && Math.random() < 0.35) spawnProjectile(Math.floor(Math.random() * 4), 'spear');
+    elapsed += floweyTick;
+    if (elapsed >= 20000) {
+      clearInterval(G.omegaInterval);
+      G.omegaInterval = null;
+      // --- Phase 2: TV ! for 3s ---
+      setBattleDialogue('* The TV screen flashes...');
+      $('enemy-sprite').textContent = '📺❗';
+      $('mode-indicator').textContent = '!!!';
+      G.omegaTimers.push(setTimeout(() => {
+        if (G.phase !== 'attack') return;
+        // --- Phase 3: 5 SOUL attacks for 10s ---
+        setBattleDialogue('* The six human SOULs attack!');
+        $('enemy-sprite').textContent = '❤️🧡💛💚💙💜';
+        $('mode-indicator').textContent = 'SOUL ATTACK';
+        const soulColors = ['#f44', '#f80', '#ff0', '#0f0', '#4af', '#a0f'];
+        let soulElapsed = 0;
+        G.omegaInterval = setInterval(() => {
+          if (G.phase !== 'attack') { clearOmega(); return; }
+          // Spawn 1 slower colored pellet (easier)
+          const box = $('battle-box');
+          const p = document.createElement('div');
+          p.className = 'projectile pellet';
+          const color = soulColors[Math.floor(Math.random() * soulColors.length)];
+          p.style.background = color;
+          p.style.boxShadow = '0 0 6px ' + color;
+          const edge = Math.floor(Math.random() * 4);
+          let x, y;
+          if (edge === 0) { x = Math.random() * 280; y = -8; }
+          else if (edge === 1) { x = 288; y = Math.random() * 180; }
+          else if (edge === 2) { x = Math.random() * 280; y = 188; }
+          else { x = -8; y = Math.random() * 180; }
+          let tx, ty;
+          if (G.playMode === 'multi') {
+            tx = (G.blue.x + G.red.x) / 2; ty = (G.blue.y + G.red.y) / 2;
+          } else if (G.playMode === 'blue') {
+            tx = G.blue.x; ty = G.blue.y;
+          } else { tx = G.red.x; ty = G.red.y; }
+          const dx = tx - x, dy = ty - y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+          const speed = 1.6; // slower than before
+          p.style.left = x + 'px'; p.style.top = y + 'px';
+          box.appendChild(p);
+          G.projectiles.push({ el: p, x, y, vx: (dx / dist) * speed, vy: (dy / dist) * speed, type: 'pellet' });
+          soulElapsed += 550;
+          if (soulElapsed >= 10000) {
+            clearInterval(G.omegaInterval);
+            G.omegaInterval = null;
+            // --- Phase 4: Green healing bullets 9s ---
+            setBattleDialogue('* The SOULs offer healing light...');
+            $('enemy-sprite').textContent = '💚';
+            $('mode-indicator').textContent = 'HEALING — CATCH THE GREEN';
+            let healElapsed = 0;
+            G.omegaInterval = setInterval(() => {
+              if (G.phase !== 'attack') { clearOmega(); return; }
+              const box = $('battle-box');
+              const p = document.createElement('div');
+              p.className = 'projectile pellet';
+              p.style.background = '#0f0';
+              p.style.boxShadow = '0 0 10px #0f0';
+              p.style.width = '14px';
+              p.style.height = '14px';
+              p.style.borderRadius = '50%';
+              const x = 30 + Math.random() * 220;
+              const y = -10;
+              p.style.left = x + 'px'; p.style.top = y + 'px';
+              box.appendChild(p);
+              G.projectiles.push({ el: p, x, y, vx: (Math.random() - 0.5) * 1.0, vy: 1.5, type: 'pellet', heal: true });
+              healElapsed += 450;
+              if (healElapsed >= 9000) {
+                clearInterval(G.omegaInterval);
+                G.omegaInterval = null;
+                $('enemy-sprite').textContent = '🌻';
+                endAttackPhase();
+              }
+            }, 450);
+          }
+        }, G.hardMode ? 450 : 550);
+      }, 3000));
+    }
+  }, floweyTick);
+}
+
+function runWave() {
+  if (G.phase !== 'attack') return;
+  G.wave++;
+  let maxWaves = G.hardMode ? 5 : 4;
+  if (G.enemy && G.enemy.boss) maxWaves = G.hardMode ? 5 : 4;
+  if (G.wave > maxWaves) { endAttackPhase(); return; }
+  setBattleDialogue(G.hardMode ? `* Wave ${G.wave} [HARD]` : `* Wave ${G.wave}`);
+
+  const pattern = G.enemy ? G.enemy.attackPattern : 'basic';
+  const gap = G.hardMode ? 200 : 280;
+  if (pattern === 'spears') {
+    const count = (G.hardMode ? 3 : 2) + G.wave;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => spawnProjectile(Math.floor(Math.random() * 4), 'spear'), i * gap);
+    }
+  } else if (pattern === 'bones') {
+    for (let i = 0; i < (G.hardMode ? 3 : 2) + G.wave; i++) {
+      setTimeout(() => spawnBone(), i * (G.hardMode ? 240 : 300));
+    }
+  } else if (pattern === 'boxes') {
+    for (let i = 0; i < (G.hardMode ? 4 : 3); i++) {
+      setTimeout(() => {
+        spawnProjectile(Math.floor(Math.random() * 4), 'spear');
+        if (Math.random() < (G.hardMode ? 0.7 : 0.5)) spawnAimed();
+      }, i * gap);
+    }
+  } else {
+    const dirs = G.wave <= 2 && !G.hardMode ? [0, 2] : [0, 1, 2, 3];
+    dirs.forEach((d, i) => setTimeout(() => spawnProjectile(d), i * (G.hardMode ? 220 : 300)));
+    if (G.hardMode && G.wave >= 2) {
+      setTimeout(() => spawnAimed(), 400);
+    }
+  }
+
+  const delay = G.enemy && G.enemy.boss
+    ? (G.hardMode ? 1700 : 2100)
+    : (G.hardMode ? 1400 : 1700);
+  G.attackTimer = setTimeout(runWave, delay);
+}
+
+function endAttackPhase() {
+  G.projectiles.forEach(p => p.el.remove());
+  G.projectiles = [];
+  if (G.attackTimer) clearTimeout(G.attackTimer);
+  if (G.omegaInterval) { clearInterval(G.omegaInterval); G.omegaInterval = null; }
+  (G.omegaTimers || []).forEach(t => clearTimeout(t));
+  G.omegaTimers = [];
+  $('mode-indicator').style.display = 'none';
+  if (G.enemy && G.enemy.name === 'Omega Flowey') $('enemy-sprite').textContent = '🌻';
+  document.getElementById('menu').style.opacity = '1';
+  document.getElementById('menu').style.pointerEvents = 'auto';
+  G.phase = 'menu';
+  G.canInput = true;
+  if (G.enemy && G.enemy.hp <= 0) { endBattle(true, false); return; }
+  setBattleDialogue(G.enemy.flavor[Math.floor(Math.random() * G.enemy.flavor.length)] || '* ...');
+}
+
+function doMenuAction() {
+  if (G.phase !== 'menu' || !G.canInput) return;
+  const action = document.querySelectorAll('.menu-item')[G.selectedMenu].dataset.action;
+  G.canInput = false;
+
+  if (action === 'fight') {
+    const fightLine = isMulti()
+      ? '* Both halves of your SOUL strike together!'
+      : isBlue()
+        ? '* Your BLUE SOUL strikes with steady force!'
+        : '* Your RED SOUL strikes with burning force!';
+    setBattleDialogue(fightLine);
+    setTimeout(() => {
+      const dmg = 7 + Math.floor(Math.random() * 6) + (G.lv - 1) * 2;
+      G.enemy.hp = Math.max(0, G.enemy.hp - dmg);
+      updateBattleUI();
+      $('enemy-sprite').classList.add('shake');
+      setTimeout(() => $('enemy-sprite').classList.remove('shake'), 220);
+      setBattleDialogue(`* You dealt ${dmg} damage!`);
+      if (G.enemy.hp <= 0) setTimeout(() => endBattle(true, false), 700);
+      else setTimeout(startAttackPhase, 850);
+    }, 650);
+  } else if (action === 'act') {
+    setBattleDialogue(`* You try to ${G.enemy.acts[0].toLowerCase()}...`);
+    setTimeout(() => {
+      const actLine = isMulti()
+        ? '* Your dual nature confuses the enemy.'
+        : isBlue()
+          ? '* Your integrity gives them pause.'
+          : '* Your determination unsettles them.';
+      setBattleDialogue(actLine);
+      G.enemy.hp = Math.max(0, G.enemy.hp - 5);
+      updateBattleUI();
+      if (G.enemy.hp <= 0) setTimeout(() => endBattle(true, false), 700);
+      else setTimeout(startAttackPhase, 850);
+    }, 700);
+  } else if (action === 'item') {
+    if (G.inventory.length > 0) {
+      const item = G.inventory.pop();
+      G.playerHP = G.playerMaxHP;
+      updateBattleUI();
+      setBattleDialogue(`* You used the ${item}. Fully healed!`);
+    } else setBattleDialogue('* No items left...');
+    setTimeout(startAttackPhase, 850);
+  } else if (action === 'mercy') {
+    const mercyLine = isMulti()
+      ? '* You reach out with both halves of your SOUL...'
+      : isBlue()
+        ? '* You reach out with quiet integrity...'
+        : '* You reach out, determined to spare them...';
+    setBattleDialogue(mercyLine);
+    setTimeout(() => {
+      if (G.enemy.spareable && G.enemy.hp < G.enemy.maxHp * 0.55) {
+        setBattleDialogue(`* You spared ${G.enemy.name}.`);
+        setTimeout(() => endBattle(true, true), 750);
+      } else if (!G.enemy.spareable) {
+        setBattleDialogue('* This foe will not yield to mercy yet.');
+        setTimeout(startAttackPhase, 850);
+      } else {
+        setBattleDialogue('* Not weak enough yet...');
+        setTimeout(startAttackPhase, 850);
+      }
+    }, 650);
+  }
+}
+
+function endBattle(won, spared) {
+  G.inBattle = false;
+  G.phase = 'menu';
+  G.projectiles.forEach(p => p.el.remove());
+  G.projectiles = [];
+  if (G.attackTimer) clearTimeout(G.attackTimer);
+  if (G.omegaInterval) { clearInterval(G.omegaInterval); G.omegaInterval = null; }
+  (G.omegaTimers || []).forEach(t => clearTimeout(t));
+  G.omegaTimers = [];
+
+  if (won) {
+    if (spared) {
+      G.spared++;
+      const room = G.rooms[G.currentRoom];
+      if (room) room.npcs.forEach(n => { if (n.name === G.enemy.name) G.flags['spared_' + n.id] = true; });
+    } else {
+      G.kills++;
+      G.lv = Math.min(8, 1 + Math.floor(G.kills / 2));
+      G.playerMaxHP = 30 + (G.lv - 1) * 5;
+      G.playerHP = Math.min(G.playerMaxHP, G.playerHP + 8);
+      const room = G.rooms[G.currentRoom];
+      if (room) room.npcs.forEach(n => { if (n.name === G.enemy.name) G.flags['killed_' + n.id] = true; });
+    }
+    updateRouteUI();
+
+    if (G.enemy.name === 'Undyne' && getRoute() !== 'pacifist') { endGame('neutral'); return; }
+    if (G.enemy.name === 'Omega Flowey') { endGame('genocide'); return; }
+    if (G.enemy.name === 'Mettaton') {
+      // continue after Mettaton
+    }
+  } else {
+    endGame('lose');
+    return;
+  }
+  loadRoom(G.currentRoom);
+}
+
+function endGame(type) {
+  showScreen('result');
+  const title = $('result-title');
+  const text = $('result-text');
+  const screen = $('result-screen');
+  screen.className = 'screen active';
+
+  const hardNote = () => {
+    const wasLocked = !isHardUnlocked();
+    if (type !== 'lose') {
+      unlockHardMode();
+      if (wasLocked) {
+        return '<br><br><span style="color:#f44">HARD MODE UNLOCKED!</span><br><span style="color:#aaa;font-size:9px;">Start a new game to enable it on the mode select screen.</span>';
+      }
+      if (G.hardMode) {
+        return '<br><br><span style="color:#f44">Hard Mode cleared.</span>';
+      }
+    }
+    return '';
+  };
+
+  if (type === 'pacifist') {
+    screen.classList.add('true');
+    title.textContent = G.hardMode ? 'TRUE ENDING [HARD]' : 'TRUE ENDING';
+    if (isMulti()) {
+      text.innerHTML = 'Your SOULs of Red and Blue found perfect balance.<br><br>Through mercy alone, the two halves became whole again.<br><br><span style="color:#4af">You killed no one.</span>' + hardNote();
+    } else if (isBlue()) {
+      text.innerHTML = 'Integrity carried you through without a single kill.<br><br>Your BLUE SOUL remains pure.<br><br><span style="color:#4af">You killed no one.</span>' + hardNote();
+    } else {
+      text.innerHTML = 'Determination without cruelty won the day.<br><br>Your RED SOUL burns clean and bright.<br><br><span style="color:#4af">You killed no one.</span>' + hardNote();
+    }
+  } else if (type === 'neutral') {
+    screen.classList.add('win');
+    title.textContent = G.hardMode ? 'NEUTRAL ENDING [HARD]' : 'NEUTRAL ENDING';
+    if (isMulti()) {
+      text.innerHTML = 'You reached the end with mixed hearts.<br><br>Some were spared. Some were not.<br>The Underground remembers both of you.<br><br>Kills: ' + G.kills + hardNote();
+    } else if (isBlue()) {
+      text.innerHTML = 'Integrity guided most of your steps — but not all.<br><br>The Underground remembers your blue light.<br><br>Kills: ' + G.kills + hardNote();
+    } else {
+      text.innerHTML = 'Determination drove you forward, for better and worse.<br><br>The Underground remembers your red fire.<br><br>Kills: ' + G.kills + hardNote();
+    }
+  } else if (type === 'genocide') {
+    screen.classList.add('win');
+    title.textContent = G.hardMode ? 'GENOCIDE ENDING [HARD]' : 'GENOCIDE ENDING';
+    if (isMulti()) {
+      text.innerHTML = 'Both halves of your SOUL ran red with LV.<br><br>Omega Flowey fell. Nothing stood in your way.<br><br>Kills: ' + G.kills + hardNote();
+    } else if (isBlue()) {
+      text.innerHTML = 'Even Integrity can be broken.<br><br>Your BLUE SOUL is stained. Omega Flowey fell.<br><br>Kills: ' + G.kills + hardNote();
+    } else {
+      text.innerHTML = 'Determination became destruction.<br><br>Your RED SOUL consumed everything. Omega Flowey fell.<br><br>Kills: ' + G.kills + hardNote();
+    }
+  } else {
+    screen.classList.add('lose');
+    title.textContent = 'GAME OVER';
+    const shatter = isMulti()
+      ? 'Both halves of your SOUL shattered...'
+      : isBlue()
+        ? 'Your BLUE SOUL of Integrity shattered...'
+        : 'Your RED SOUL of Determination shattered...';
+    text.innerHTML = (G.checkpoint || hasSavedGame())
+      ? shatter + '<br><br>Press Enter to return to your last checkpoint.'
+      : shatter + '<br><br>Try again?';
+  }
+}
+
+// ---------- INPUT ----------
+function isTypingTarget(el) {
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  return tag === 'input' || tag === 'textarea' || el.isContentEditable;
+}
+
+function setKeyState(e, down) {
+  // Don't hijack keys while typing a name
+  if (isTypingTarget(e.target) || G.screen === 'name') return;
+
+  const c = e.code;
+  if (c === 'KeyW' || c === 'KeyS' || c === 'KeyA' || c === 'KeyD' ||
+      c === 'ArrowUp' || c === 'ArrowDown' || c === 'ArrowLeft' || c === 'ArrowRight' ||
+      c === 'Space' || c === 'Enter' || c === 'KeyZ') {
+    e.preventDefault();
+  }
+  if (c === 'KeyW') G.keys.w = down;
+  if (c === 'KeyS') G.keys.s = down;
+  if (c === 'KeyA') G.keys.a = down;
+  if (c === 'KeyD') G.keys.d = down;
+  if (c === 'ArrowUp') G.keys.up = down;
+  if (c === 'ArrowDown') G.keys.down = down;
+  if (c === 'ArrowLeft') G.keys.left = down;
+  if (c === 'ArrowRight') G.keys.right = down;
+}
+
+function moveSoulsStep() {
+  if (G.phase !== 'attack' || G.screen !== 'battle') return;
+  const sp = 3.2;
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  if (G.playMode === 'multi') {
+    if (G.keys.w) G.blue.y -= sp;
+    if (G.keys.s) G.blue.y += sp;
+    if (G.keys.a) G.blue.x -= sp;
+    if (G.keys.d) G.blue.x += sp;
+    if (G.keys.up) G.red.y -= sp;
+    if (G.keys.down) G.red.y += sp;
+    if (G.keys.left) G.red.x -= sp;
+    if (G.keys.right) G.red.x += sp;
+    G.blue.x = clamp(G.blue.x, 2, 262);
+    G.blue.y = clamp(G.blue.y, 2, 162);
+    G.red.x = clamp(G.red.x, 2, 262);
+    G.red.y = clamp(G.red.y, 2, 162);
+  } else {
+    const soul = G.playMode === 'blue' ? G.blue : G.red;
+    if (G.keys.w || G.keys.up) soul.y -= sp;
+    if (G.keys.s || G.keys.down) soul.y += sp;
+    if (G.keys.a || G.keys.left) soul.x -= sp;
+    if (G.keys.d || G.keys.right) soul.x += sp;
+    soul.x = clamp(soul.x, 2, 262);
+    soul.y = clamp(soul.y, 2, 162);
+  }
+  placeSouls();
+}
+
+document.addEventListener('keydown', e => {
+  setKeyState(e, true);
+
+  // Let the name field handle its own keys (except we still allow its Enter handler)
+  if (isTypingTarget(e.target) || G.screen === 'name') {
+    return;
+  }
+
+  if (G.screen === 'title' && (e.key === 'Enter' || e.key === ' ')) {
+    $('start-btn').click();
+    return;
+  }
+  if (G.screen === 'select' && (e.key === 'Enter' || e.key === ' ')) {
+    openSlotsScreen('new');
+    return;
+  }
+  if (G.screen === 'slots' && (e.key === 'Enter' || e.key === ' ')) {
+    $('slots-confirm-btn').click();
+    return;
+  }
+  if (G.screen === 'result' && (e.key === 'Enter' || e.key === ' ')) {
+    if ($('result-title').textContent === 'GAME OVER' && (G.checkpoint || hasSavedGame())) {
+      loadCheckpoint();
+    } else {
+      location.reload();
+    }
+    return;
+  }
+  if (G.screen === 'story' && (e.key === 'Enter' || e.key === ' ' || e.key === 'z' || e.key === 'Z')) {
+    advanceStory(); return;
+  }
+  if (G.screen === 'overworld') {
+    if (e.key === 'Enter' || e.key === 'z' || e.key === 'Z' || e.key === ' ') tryInteract();
+    return;
+  }
+  if (G.screen !== 'battle') return;
+
+  // During attack: also nudge immediately on keydown so movement always feels responsive
+  if (G.phase === 'attack') {
+    moveSoulsStep();
+    return;
+  }
+
+  if (G.phase === 'menu' && G.canInput) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') selectMenu((G.selectedMenu + 3) % 4);
+    else if (e.code === 'ArrowRight' || e.code === 'KeyD') selectMenu((G.selectedMenu + 1) % 4);
+    else if (e.code === 'Enter' || e.code === 'KeyZ' || e.code === 'Space') doMenuAction();
+  }
+});
+
+document.addEventListener('keyup', e => { setKeyState(e, false); });
+
+// Keep focus on the page so keys always register
+window.addEventListener('click', () => { try { document.body.focus(); } catch (_) {} });
+
+$('start-btn').addEventListener('click', () => {
+  // New game → name entry
+  $('name-input').value = '';
+  setNameMsg('');
+  showNameWarningUI(false);
+  G.pendingName = '';
+  showScreen('name');
+  setTimeout(() => $('name-input').focus(), 50);
+});
+$('continue-btn').addEventListener('click', () => {
+  openSlotsScreen('load');
+});
+$('name-back-btn').addEventListener('click', () => {
+  showScreen('title');
+  refreshTitleButtons();
+});
+$('name-confirm-btn').addEventListener('click', () => {
+  const result = checkName($('name-input').value);
+  if (result.warn) {
+    setNameMsg(result.msg, 'warn');
+    G.pendingName = $('name-input').value.trim();
+    showNameWarningUI(true);
+    return;
+  }
+  if (!result.ok) {
+    setNameMsg(result.msg, '');
+    showNameWarningUI(false);
+    return;
+  }
+  G.playerName = result.name;
+  setNameMsg('Nice name.', 'ok');
+  showNameWarningUI(false);
+  // Mode select
+  document.querySelectorAll('.select-card').forEach(c => c.classList.remove('selected'));
+  $('opt-multi').classList.add('selected');
+  G.playMode = 'multi';
+  G.hardMode = false;
+  refreshHardToggle();
+  showScreen('select');
+});
+$('name-yes-btn').addEventListener('click', () => {
+  G.playerName = G.pendingName || $('name-input').value.trim();
+  setNameMsg('...', 'warn');
+  showNameWarningUI(false);
+  document.querySelectorAll('.select-card').forEach(c => c.classList.remove('selected'));
+  $('opt-multi').classList.add('selected');
+  G.playMode = 'multi';
+  G.hardMode = false;
+  refreshHardToggle();
+  showScreen('select');
+});
+$('hard-toggle-btn').addEventListener('click', () => {
+  if (!G.hardUnlocked && !isHardUnlocked()) return;
+  G.hardMode = !G.hardMode;
+  refreshHardToggle();
+});
+$('name-no-btn').addEventListener('click', () => {
+  setNameMsg('Choose another name.', '');
+  showNameWarningUI(false);
+  G.pendingName = '';
+  $('name-input').focus();
+});
+$('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if ($('name-yes-btn').style.display !== 'none') $('name-yes-btn').click();
+    else $('name-confirm-btn').click();
+  }
+});
+
+$('slots-back-btn').addEventListener('click', () => {
+  if (G.slotsMode === 'new') showScreen('select');
+  else {
+    showScreen('title');
+    refreshTitleButtons();
+  }
+});
+$('slots-confirm-btn').addEventListener('click', () => {
+  if (!G._selectedSlot) {
+    $('slots-hint').textContent = 'Select a slot first.';
+    return;
+  }
+  if (G.slotsMode === 'load') {
+    const data = readSlot(G._selectedSlot);
+    if (!data) {
+      $('slots-hint').textContent = 'That slot is empty.';
+      return;
+    }
+    G.currentSlot = G._selectedSlot;
+    applySaveData(data);
+  } else {
+    // New game into this slot (overwrite if needed)
+    G.currentSlot = G._selectedSlot;
+    startGame();
+  }
+});
+$('slots-delete-btn').addEventListener('click', () => {
+  if (!G._selectedSlot) return;
+  if (!readSlot(G._selectedSlot)) return;
+  if (!confirm('Delete Slot ' + G._selectedSlot + '?')) return;
+  clearSlot(G._selectedSlot);
+  renderSlotsList();
+  refreshTitleButtons();
+});
+
+$('restart-btn').addEventListener('click', () => location.reload());
+$('story-dialogue').addEventListener('click', () => { if (G.screen === 'story') advanceStory(); });
+document.querySelectorAll('.menu-item').forEach((el, i) => {
+  el.addEventListener('click', () => {
+    if (G.phase === 'menu' && G.canInput) { selectMenu(i); doMenuAction(); }
+  });
+});
+
+// Mode select cards
+document.querySelectorAll('.select-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.select-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    G.playMode = card.dataset.mode;
+  });
+});
+$('confirm-mode-btn').addEventListener('click', () => {
+  // After mode → pick save slot for new game
+  openSlotsScreen('new');
+});
+
+// ---------- GAME LOOP ----------
+function gameLoop() {
+  if (G.screen === 'overworld') owUpdate();
+
+  if (G.phase === 'attack') {
+    updateProjectiles();
+    moveSoulsStep();
+  }
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+function startGame() {
+  // Wipe selected slot and start fresh
+  clearSlot(G.currentSlot);
+  G.playerHP = 30; G.playerMaxHP = 30; G.lv = 1;
+  G.kills = 0; G.spared = 0;
+  G.inventory = ['Bandage', 'Bandage', 'Spider Donut'];
+  G.flags = {};
+  G.checkpoint = null;
+  G.playerX = 300; G.playerY = 280;
+  G._isIntro = true;
+  // Initial save so CONTINUE works after first checkpoint; name is set
+  startStory(getIntroScript());
+}
+
+// On load
+G.hardUnlocked = isHardUnlocked();
+refreshTitleButtons();
+refreshHardToggle();
+updateBattleUI();
+</script>
+</body>
+</html>
